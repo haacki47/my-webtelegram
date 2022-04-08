@@ -1,58 +1,65 @@
-import TDLibConstructor from 'tdweb';
-import {Component} from 'react';
-import './App.css';
-import {Autocomplete, Button, FormControl, InputLabel, MenuItem, Select, TextField, Typography} from "@mui/material";
+import TDLibConstructor from 'tdweb'
+import { Component } from 'react'
+import * as Yup from 'yup'
+import { Formik } from 'formik'
+import './App.css'
+import {
+    Autocomplete,
+    Box,
+    Button,
+    FormControl,
+    InputAdornment,
+    MenuItem,
+    TextField,
+    Typography,
+} from '@mui/material'
+import { Country } from './components/auth/Country'
 
-const TDLib =  new TDLibConstructor({instanceName: 'telegram_web', mode: 'wasm', isBackground: false});
+const TDLib = new TDLibConstructor({
+    instanceName: 'telegram_web',
+    mode: 'wasm',
+    isBackground: false,
+})
+
+const validationSchema = Yup.object({
+    countryCode: Yup.string().required('Country is required'),
+    phoneNumber: Yup.string().required('Phone number is required'),
+})
 
 class App extends Component {
     constructor(props) {
-        super(props);
+        super(props)
 
         this.state = {
-            phone: '',
-            country: null,
             countries: [],
-            authState: '',
-            code: '',
-        };
+        }
     }
 
     componentDidMount() {
-        TDLib.onUpdate = this.onUpdate;
-    }
-
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if (prevState.authState  == this.state.authState) {
-            this.getContacts();
-        }
-    }
-
-    async getContacts() {
-        const {user_ids: userIds = []} = await TDLib.send({'@type': 'getContacts'});
+        TDLib.onUpdate = this.onUpdate
     }
 
     onUpdate = async (update) => {
-        const updateType = update['@type'];
+        const updateType = update['@type']
 
         if (updateType === 'updateAuthorizationState') {
-            const authState = update.authorization_state['@type'];
+            const authState = update.authorization_state['@type']
 
-            this.setState({authState});
+            this.setState({ authState })
 
-            console.log('AUTHSTATE', authState, update.authorization_state);
+            console.log('AUTHSTATE', authState, update.authorization_state)
 
-            if(authState === 'authorizationStateWaitTdlibParameters') {
-                await this.onUpdateTdlibParameters();
+            if (authState === 'authorizationStateWaitTdlibParameters') {
+                await this.sendTdlibParameters()
             }
 
             if (authState === 'authorizationStateWaitEncryptionKey') {
-                TDLib.send({'@type': 'checkDatabaseEncryptionKey'});
+                TDLib.send({ '@type': 'checkDatabaseEncryptionKey' })
             }
         }
-    };
+    }
 
-    async onUpdateTdlibParameters() {
+    async sendTdlibParameters() {
         await TDLib.send({
             '@type': 'setTdlibParameters',
             parameters: {
@@ -69,157 +76,131 @@ class App extends Component {
                 use_secret_chats: false,
                 use_message_database: true,
                 use_file_database: false,
-            }
-        });
-
-        const {countries} = await TDLib.send({'@type': 'getCountries'});
-
-        this.setState({countries});
+            },
+        }).then(() => this.retrieveCountries())
     }
 
-    handlePhoneChange(phone) {
-        this.setState({phone});
+    async retrieveCountries() {
+        const { countries } = await TDLib.send({ '@type': 'getCountries' })
+
+        this.setState({ countries })
     }
 
-    handleCountryChange({calling_codes: callingCodes, name}) {
-        this.setState({country: name, phone: `+${callingCodes} `});
-    }
-
-    handleCodeChange(code) {
-        this.setState({code});
-    }
-
-    handlePasswordChange(password) {
-        this.setState({password});
-    }
-
-    onSetAuthenticationPhoneNumber() {
-        const {phone} = this.state;
+    sendPhoneNumber(values) {
+        const { phoneNumber, countryCode } = values
 
         TDLib.send({
             '@type': 'setAuthenticationPhoneNumber',
-            phone_number: phone
+            phone_number: `${countryCode}${phoneNumber}`,
         })
     }
 
-    onCheckAuthenticationCode() {
-        const {code} = this.state;
-
+    sendConfirmationCode(code) {
         TDLib.send({
             '@type': 'checkAuthenticationCode',
-            code
-        });
+            code,
+        })
     }
 
-    onCheckAuthenticationPassword() {
-        const {password} = this.state;
-
+    sendPassword(password) {
         TDLib.send({
             '@type': 'checkAuthenticationPassword',
-            password
-        });
-    }
-
-    renderPhoneAuthorization() {
-        const {phone, countries} = this.state;
-
-        return (
-            <>
-                <FormControl className="auth-form-control" fullWidth>
-                    <Autocomplete
-                        disablePortal
-                        options={countries}
-                        onChange={(e, country) => this.handleCountryChange(country)}
-                        getOptionLabel={({english_name: countryName}) => countryName}
-                        renderOption={(props, {english_name: countryName, country_code: countryCode}) => (
-                            <MenuItem {...props} value={countryCode}>
-                                <Typography fontWeight="600" mr={2}>{countryCode}</Typography>
-                                <span>{countryName}</span>
-                            </MenuItem>
-                        )}
-                        renderInput={(params) => <TextField {...params} label="Country"  placeholder="Country" />}
-                    />
-                </FormControl>
-
-                <FormControl className="auth-form-control" fullWidth>
-                    <TextField value={phone}
-                               label="Phone number"
-                               onChange={(e) => this.handlePhoneChange(e.target.value)}
-                    />
-                </FormControl>
-
-                <Button onClick={() => this.onSetAuthenticationPhoneNumber()} sx={{width: '100%', padding: '10px 0'}} className="auth-form-submit" variant="contained">NEXT</Button>
-            </>
-        );
-    }
-
-    renderAuthCode() {
-        const {code} = this.state;
-        return (
-            <>
-                <FormControl className="auth-form-control" fullWidth>
-                    <TextField value={code}
-                               onChange={(e) => this.handleCodeChange(e.target.value)}
-                               label="Code"
-                    />
-                </FormControl>
-
-                <Button onClick={() => this.onCheckAuthenticationCode()} sx={{width: '100%', padding: '10px 0'}} className="auth-form-submit" variant="contained">NEXT</Button>
-            </>
-        )
-    }
-
-    renderPasswordAuthentication() {
-        const {password} = this.state;
-
-        return (
-            <>
-                <FormControl className="auth-form-control" fullWidth>
-                    <TextField value={password}
-                               type="password"
-                               onChange={(e) => this.handlePasswordChange(e.target.value)}
-                               label="Password"
-                    />
-                </FormControl>
-
-                <Button onClick={() => this.onCheckAuthenticationPassword()} sx={{width: '100%', padding: '10px 0'}} className="auth-form-submit" variant="contained">NEXT</Button>
-            </>
-        )
+            password,
+        })
     }
 
     render() {
-        const {authState} = this.state;
-        const isAuthStateReady = authState === 'authorizationStateReady';
+        const { countries } = this.state
 
-        let authenticationMethod = null;
-
-        switch(authState) {
-            case 'authorizationStateWaitPhoneNumber':
-                authenticationMethod = this.renderPhoneAuthorization();
-                break;
-            case 'authorizationStateWaitCode':
-                authenticationMethod = this.renderAuthCode();
-                break;
-
-            case 'authorizationStateWaitPassword':
-                authenticationMethod = this.renderPasswordAuthentication();
-                break;
+        const initialValues = {
+            countryCode: '',
+            phoneNumber: '',
+            code: '',
+            password: '',
         }
 
         return (
             <>
-                {!isAuthStateReady && (
-                    <form className="auth-form" autoComplete="off">
-                        <img className="auth-form-logo" src="logo.svg"/>
-                        <Typography variant="h4" align="center" mb={1}>Sign in to Telegram</Typography>
-                        <Typography variant="body1" color="grey.600" align="center" mb={3}>Please confirm your country code
-                            and enter your phone number.</Typography>
-                        {authenticationMethod}
-                    </form>
-                )}
+                <div className="auth-form">
+                    <img className="auth-form-logo" src="logo.svg" />
+                    <Typography variant="h4" align="center" mb={1}>
+                        Sign in to Telegram
+                    </Typography>
+                    <Typography
+                        variant="body1"
+                        color="grey.600"
+                        align="center"
+                        mb={3}
+                    >
+                        Please confirm your country code and enter your phone o
+                        number.
+                    </Typography>
+                    <Formik
+                        initialValues={initialValues}
+                        validationSchema={validationSchema}
+                        onSubmit={(values) => {
+                            this.sendPhoneNumber(values)
+                        }}
+                    >
+                        {({
+                            handleSubmit,
+                            values,
+                            errors,
+                            touched,
+                            handleChange,
+                        }) => (
+                            <form onSubmit={handleSubmit} autoComplete="off">
+                                <Country countries={countries} />
+                                <FormControl margin="normal" fullWidth>
+                                    <TextField
+                                        label="Phone"
+                                        name="phoneNumber"
+                                        error={
+                                            touched.phoneNumber &&
+                                            Boolean(errors.phoneNumber)
+                                        }
+                                        helperText={
+                                            errors.phoneNumber &&
+                                            touched.phoneNumber &&
+                                            errors.phoneNumber
+                                        }
+                                        InputProps={
+                                            values.countryCode && {
+                                                startAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <Typography
+                                                            color="text.primary"
+                                                            variant="body1"
+                                                            mr={1}
+                                                        >
+                                                            +
+                                                            {values.countryCode}
+                                                        </Typography>
+                                                    </InputAdornment>
+                                                ),
+                                            }
+                                        }
+                                        value={values.phoneNumber}
+                                        onChange={handleChange}
+                                    />
+                                </FormControl>
+
+                                <FormControl fullWidth margin="normal">
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        fullWidth
+                                    >
+                                        NEXT
+                                    </Button>
+                                </FormControl>
+                            </form>
+                        )}
+                    </Formik>
+                </div>
             </>
         )
     }
 }
 
-export default App;
+export default App
