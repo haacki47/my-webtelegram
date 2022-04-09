@@ -115,32 +115,42 @@ class App extends Component {
     render() {
         const { countries, authState } = this.state
 
-        return (
-            <>
-                <div className="auth-form">
-                    <img className="auth-form-logo" src="logo.svg" />
-                    <Typography variant="h4" align="center" mb={1}>
-                        {messages.auth.TITLE}
-                    </Typography>
-                    <Typography
-                        variant="body1"
-                        color="grey.600"
-                        align="center"
-                        mb={3}
-                    >
-                        {messages.auth.HELPER_TEXT}
-                    </Typography>
-                    <DefaultAuthForm
-                        countries={countries}
-                        onSendPhoneNumber={this.sendPhoneNumber}
-                        onSendConfirmationCode={this.sendConfirmationCode}
-                        onSendPassword={this.sendPassword}
-                        authState={authState}
-                    />
-                    }
-                </div>
-            </>
-        )
+        switch (authState) {
+            case 'updateAuthorizationState':
+            case 'authorizationStateWaitTdlibParameters':
+            case 'authorizationStateWaitPhoneNumber':
+            case 'authorizationStateWaitCode':
+            case 'authorizationStateWaitPassword':
+            case 'authorizationStateWaitEncryptionKey':
+            case 'authorizationStateWaitRegistration':
+                return (
+                    <>
+                        <div className="auth-form">
+                            <img className="auth-form-logo" src="logo.svg" />
+                            <Typography variant="h4" align="center" mb={1}>
+                                {messages.auth.TITLE}
+                            </Typography>
+                            <Typography
+                                variant="body1"
+                                color="grey.600"
+                                align="center"
+                                mb={3}
+                            >
+                                {messages.auth.HELPER_TEXT}
+                            </Typography>
+                            <DefaultAuthForm
+                                countries={countries}
+                                onSendPhoneNumber={this.sendPhoneNumber}
+                                onSendConfirmationCode={
+                                    this.sendConfirmationCode
+                                }
+                                onSendPassword={this.sendPassword}
+                                authState={authState}
+                            />
+                        </div>
+                    </>
+                )
+        }
     }
 }
 

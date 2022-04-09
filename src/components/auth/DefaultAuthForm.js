@@ -46,7 +46,7 @@ export const DefaultAuthForm = ({
             validationSchema={validationSchema}
             onSubmit={onSubmit}
         >
-            {({ handleSubmit, errors, handleChange, touched, values }) => (
+            {({ handleSubmit }) => (
                 <form onSubmit={handleSubmit} autoComplete="off">
                     {authState === 'authorizationStateWaitPhoneNumber' && (
                         <>
