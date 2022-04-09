@@ -1,29 +1,15 @@
 import TDLibConstructor from 'tdweb'
 import { Component } from 'react'
-import * as Yup from 'yup'
-import { Formik } from 'formik'
 import './App.css'
-import {
-    Autocomplete,
-    Box,
-    Button,
-    FormControl,
-    InputAdornment,
-    MenuItem,
-    TextField,
-    Typography,
-} from '@mui/material'
-import { Country } from './components/auth/Country'
+import { Typography } from '@mui/material'
+import { DefaultAuthForm } from './components/auth/DefaultAuthForm'
+import { ERROR_CODES } from './constants'
+import { messages } from './messages_en'
 
 const TDLib = new TDLibConstructor({
     instanceName: 'telegram_web',
     mode: 'wasm',
     isBackground: false,
-})
-
-const validationSchema = Yup.object({
-    countryCode: Yup.string().required('Country is required'),
-    phoneNumber: Yup.string().required('Phone number is required'),
 })
 
 class App extends Component {
@@ -32,6 +18,7 @@ class App extends Component {
 
         this.state = {
             countries: [],
+            authState: '',
         }
     }
 
@@ -86,45 +73,54 @@ class App extends Component {
         this.setState({ countries })
     }
 
-    sendPhoneNumber(values) {
+    async sendPhoneNumber(values, { setErrors }) {
         const { phoneNumber, countryCode } = values
 
-        TDLib.send({
-            '@type': 'setAuthenticationPhoneNumber',
-            phone_number: `${countryCode}${phoneNumber}`,
-        })
+        try {
+            await TDLib.send({
+                '@type': 'setAuthenticationPhoneNumber',
+                phone_number: `${countryCode}${phoneNumber}`,
+            })
+        } catch ({ message }) {
+            if (message === ERROR_CODES.PHONE_NUMBER_INVALID) {
+                setErrors({
+                    phoneNumber: messages.errors.PHONE_NUMBER_INVALID,
+                })
+            }
+        }
     }
 
-    sendConfirmationCode(code) {
+    sendConfirmationCode({ code }) {
         TDLib.send({
             '@type': 'checkAuthenticationCode',
             code,
         })
     }
 
-    sendPassword(password) {
-        TDLib.send({
-            '@type': 'checkAuthenticationPassword',
-            password,
-        })
+    async sendPassword({ password }, { setErrors }) {
+        try {
+            TDLib.send({
+                '@type': 'checkAuthenticationPassword',
+                password,
+            })
+        } catch ({ message }) {
+            if (message === ERROR_CODES.PASSWORD_HASH_INVALID) {
+                setErrors({
+                    password: messages.errors.PASSWORD_HASH_INVALID,
+                })
+            }
+        }
     }
 
     render() {
-        const { countries } = this.state
-
-        const initialValues = {
-            countryCode: '',
-            phoneNumber: '',
-            code: '',
-            password: '',
-        }
+        const { countries, authState } = this.state
 
         return (
             <>
                 <div className="auth-form">
                     <img className="auth-form-logo" src="logo.svg" />
                     <Typography variant="h4" align="center" mb={1}>
-                        Sign in to Telegram
+                        {messages.auth.TITLE}
                     </Typography>
                     <Typography
                         variant="body1"
@@ -132,71 +128,16 @@ class App extends Component {
                         align="center"
                         mb={3}
                     >
-                        Please confirm your country code and enter your phone o
-                        number.
+                        {messages.auth.HELPER_TEXT}
                     </Typography>
-                    <Formik
-                        initialValues={initialValues}
-                        validationSchema={validationSchema}
-                        onSubmit={(values) => {
-                            this.sendPhoneNumber(values)
-                        }}
-                    >
-                        {({
-                            handleSubmit,
-                            values,
-                            errors,
-                            touched,
-                            handleChange,
-                        }) => (
-                            <form onSubmit={handleSubmit} autoComplete="off">
-                                <Country countries={countries} />
-                                <FormControl margin="normal" fullWidth>
-                                    <TextField
-                                        label="Phone"
-                                        name="phoneNumber"
-                                        error={
-                                            touched.phoneNumber &&
-                                            Boolean(errors.phoneNumber)
-                                        }
-                                        helperText={
-                                            errors.phoneNumber &&
-                                            touched.phoneNumber &&
-                                            errors.phoneNumber
-                                        }
-                                        InputProps={
-                                            values.countryCode && {
-                                                startAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Typography
-                                                            color="text.primary"
-                                                            variant="body1"
-                                                            mr={1}
-                                                        >
-                                                            +
-                                                            {values.countryCode}
-                                                        </Typography>
-                                                    </InputAdornment>
-                                                ),
-                                            }
-                                        }
-                                        value={values.phoneNumber}
-                                        onChange={handleChange}
-                                    />
-                                </FormControl>
-
-                                <FormControl fullWidth margin="normal">
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        fullWidth
-                                    >
-                                        NEXT
-                                    </Button>
-                                </FormControl>
-                            </form>
-                        )}
-                    </Formik>
+                    <DefaultAuthForm
+                        countries={countries}
+                        onSendPhoneNumber={this.sendPhoneNumber}
+                        onSendConfirmationCode={this.sendConfirmationCode}
+                        onSendPassword={this.sendPassword}
+                        authState={authState}
+                    />
+                    }
                 </div>
             </>
         )

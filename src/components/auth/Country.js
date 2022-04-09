@@ -3,8 +3,7 @@ import { Autocomplete, Box, FormControl, TextField } from '@mui/material'
 import { useFormikContext } from 'formik'
 
 export function Country({ countries }) {
-    const { setFieldValue, touched, errors, values, handleChange } =
-        useFormikContext()
+    const { setFieldValue, touched, errors } = useFormikContext()
 
     const renderOption = (props, { country_code, name }) => {
         return (
@@ -40,8 +39,6 @@ export function Country({ countries }) {
                     touched.countryCode &&
                     errors.countryCode
                 }
-                value={values.countryCode}
-                onChange={handleChange}
                 name="countryCode"
                 label="Country"
             />
@@ -62,16 +59,14 @@ export function Country({ countries }) {
     }
 
     return (
-        <FormControl margin="normal" fullWidth>
-            <Autocomplete
-                disablePortal
-                options={countries}
-                fullWidth
-                getOptionLabel={(option) => option.name}
-                onChange={handleOnChange}
-                renderOption={renderOption}
-                renderInput={renderInput}
-            />
-        </FormControl>
+        <Autocomplete
+            disablePortal
+            options={countries}
+            fullWidth
+            getOptionLabel={(option) => option.name}
+            onChange={handleOnChange}
+            renderOption={renderOption}
+            renderInput={renderInput}
+        />
     )
 }
