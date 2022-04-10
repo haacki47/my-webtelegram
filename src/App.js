@@ -1,7 +1,16 @@
 import TDLibConstructor from 'tdweb'
 import { Component } from 'react'
 import './App.css'
-import { Typography } from '@mui/material'
+import {
+    Avatar,
+    Divider,
+    List,
+    ListItem,
+    ListItemAvatar,
+    ListItemButton,
+    ListItemText,
+    Typography,
+} from '@mui/material'
 import { DefaultAuthForm } from './components/auth/DefaultAuthForm'
 import { ERROR_CODES } from './constants'
 import { messages } from './messages_en'
@@ -149,6 +158,47 @@ class App extends Component {
                             />
                         </div>
                     </>
+                )
+
+            case 'authorizationStateReady':
+                return (
+                    <List
+                        dense
+                        sx={{
+                            width: '100%',
+                            maxWidth: 360,
+                            bgcolor: 'background.paper',
+                            cursor: 'pointer',
+                        }}
+                        aria-label="contacts"
+                        disablePadding
+                    >
+                        <ListItem disablePadding>
+                            <ListItemButton>
+                                <ListItemAvatar>
+                                    <Avatar
+                                        sx={{ width: 50, height: 50 }}
+                                        src="https://i.pravatar.cc/500"
+                                    ></Avatar>
+                                </ListItemAvatar>
+                                <ListItemText
+                                    primary="John Doe"
+                                    secondary={
+                                        <>
+                                            <Typography
+                                                component="span"
+                                                variant="body2"
+                                                color="text.secondary"
+                                            >
+                                                {/*  LAST MESSAGE  */}
+                                            </Typography>
+                                        </>
+                                    }
+                                />
+                            </ListItemButton>
+                        </ListItem>
+                        {/*<Divider variant="inset" component="li" />*/}
+                    </List>
                 )
         }
     }
