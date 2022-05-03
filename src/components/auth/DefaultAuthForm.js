@@ -2,7 +2,7 @@ import React from 'react'
 import { Formik } from 'formik'
 import { Country } from './Country'
 import { Phone } from './Phone'
-import { Button, FormControl } from '@mui/material'
+import { Button, FormControl, Stack } from '@mui/material'
 import * as Yup from 'yup'
 import { Code } from './Code'
 import { Password } from './Password'
@@ -50,12 +50,10 @@ export const DefaultAuthForm = ({
                 <form onSubmit={handleSubmit} autoComplete="off">
                     {authState === 'authorizationStateWaitPhoneNumber' && (
                         <>
-                            <FormControl fullWidth margin="normal">
+                            <Stack spacing={2} direction="column">
                                 <Country countries={countries} />
-                            </FormControl>
-                            <FormControl fullWidth margin="normal">
                                 <Phone />
-                            </FormControl>
+                            </Stack>
                         </>
                     )}
                     {authState === 'authorizationStateWaitCode' && (

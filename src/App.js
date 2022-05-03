@@ -28,6 +28,7 @@ class App extends Component {
         this.state = {
             countries: [],
             authState: '',
+            chats: [],
         }
     }
 
@@ -35,11 +36,32 @@ class App extends Component {
         TDLib.onUpdate = this.onUpdate
     }
 
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        if (this.state.authState === 'authorizationStateReady') {
+            this.getChats()
+        }
+    }
+
+    async getChats() {
+        const { chat_ids = [] } = await TDLib.send({
+            '@type': 'getChats',
+            limit: '10',
+        })
+
+        const result = await Promise.all(
+            chat_ids.map(async (id) =>
+                TDLib.send({ '@type': 'getChat', chat_id: id })
+            )
+        )
+
+        this.setState({ chats: result })
+    }
+
     onUpdate = async (update) => {
         const updateType = update['@type']
-
         if (updateType === 'updateAuthorizationState') {
             const authState = update.authorization_state['@type']
+            console.log('auth state', update)
 
             this.setState({ authState })
 
@@ -132,6 +154,7 @@ class App extends Component {
             case 'authorizationStateWaitPassword':
             case 'authorizationStateWaitEncryptionKey':
             case 'authorizationStateWaitRegistration':
+            case 'authorizationStateLoggingOut':
                 return (
                     <>
                         <div className="auth-form">
@@ -173,30 +196,50 @@ class App extends Component {
                         aria-label="contacts"
                         disablePadding
                     >
-                        <ListItem disablePadding>
-                            <ListItemButton>
-                                <ListItemAvatar>
-                                    <Avatar
-                                        sx={{ width: 50, height: 50 }}
-                                        src="https://i.pravatar.cc/500"
-                                    ></Avatar>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary="John Doe"
-                                    secondary={
-                                        <>
-                                            <Typography
-                                                component="span"
-                                                variant="body2"
-                                                color="text.secondary"
-                                            >
-                                                {/*  LAST MESSAGE  */}
-                                            </Typography>
-                                        </>
-                                    }
-                                />
-                            </ListItemButton>
-                        </ListItem>
+                        {this.state.chats.map(({ id, title, photo }) => {
+                            const srcPhoto = photo?.minithumbnail?.data
+                            return (
+                                <ListItem disablePadding key={id}>
+                                    <ListItemButton>
+                                        <ListItemAvatar>
+                                            {srcPhoto ? (
+                                                <Avatar
+                                                    sx={{
+                                                        width: 50,
+                                                        height: 50,
+                                                    }}
+                                                    src={`data:image/png;base64, ${srcPhoto}`}
+                                                />
+                                            ) : (
+                                                <Avatar
+                                                    sx={{
+                                                        width: 50,
+                                                        height: 50,
+                                                    }}
+                                                >
+                                                    NP
+                                                </Avatar>
+                                            )}
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={title}
+                                            secondary={
+                                                <>
+                                                    <Typography
+                                                        component="span"
+                                                        variant="body2"
+                                                        color="text.secondary"
+                                                    >
+                                                        {/*  LAST MESSAGE  */}
+                                                    </Typography>
+                                                </>
+                                            }
+                                        />
+                                    </ListItemButton>
+                                </ListItem>
+                            )
+                        })}
+
                         {/*<Divider variant="inset" component="li" />*/}
                     </List>
                 )
